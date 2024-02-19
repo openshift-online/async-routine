@@ -6,8 +6,6 @@ import (
 
 	"golang.org/x/sync/errgroup"
 
-	"github.com/google/uuid"
-
 	"gitlab.cee.redhat.com/service/uhc-clusters-service/pkg/opid"
 )
 
@@ -67,6 +65,5 @@ func (b *asyncRoutineBuilder) Timebox(duration time.Duration) AsyncRoutineBuilde
 }
 
 func (b *asyncRoutineBuilder) Run() {
-	manager.routines.Set(uuid.New().String(), &b.asyncRoutine)
-	b.asyncRoutine.run()
+	manager.run(&b.asyncRoutine)
 }
