@@ -53,8 +53,8 @@ var _ = Describe("Async Routine Monitor", func() {
 			runningRoutineByNameCount: map[string]int{},
 			originatorCtx:             ctx,
 		}
-		observerId := AddObserver(&testObserver)
-		defer RemoveObserver(observerId)
+		observerId := Manager().AddObserver(&testObserver)
+		defer Manager().RemoveObserver(observerId)
 
 		testObserver.wg.Add(3)
 		NewAsyncRoutine("count up to 9", ctx, func() {

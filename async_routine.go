@@ -110,7 +110,7 @@ func (r *asyncRoutine) run() {
 		}
 	}
 
-	sendEvent(func(observer RoutinesObserver) {
+	manager.sendEvent(func(observer RoutinesObserver) {
 		observer.RoutineStarted(r)
 	})
 

@@ -31,46 +31,62 @@ type RoutinesObserver interface {
 	RunningRoutineByNameCount(name string, count int)
 }
 
-var routines = cmap.New[*asyncRoutine]()
-var observers = cmap.New[RoutinesObserver]()
+type AsyncRoutineManager interface {
+	AddObserver(observer RoutinesObserver) string
+	RemoveObserver(observerId string)
+}
+
+var manager = &asyncRoutineManager{
+	routines:  cmap.New[*asyncRoutine](),
+	observers: cmap.New[RoutinesObserver](),
+}
+
+func Manager() AsyncRoutineManager {
+	return manager
+}
+
+type asyncRoutineManager struct {
+	routines  cmap.ConcurrentMap[string, *asyncRoutine]
+	observers cmap.ConcurrentMap[string, RoutinesObserver]
+}
 
 // AddObserver adds a new RoutineObserver to the list of observers.
 // Assigns and returns an observer ID to the RoutineObserver
-func AddObserver(observer RoutinesObserver) string {
+func (arm *asyncRoutineManager) AddObserver(observer RoutinesObserver) string {
 	uid := uuid.New().String()
-	observers.Set(uid, observer)
+	arm.observers.Set(uid, observer)
 	return uid
 }
 
 // RemoveObserver removes the given RoutineObserver from the list of observers
-func RemoveObserver(observerId string) {
-	observers.Remove(observerId)
+func (arm *asyncRoutineManager) RemoveObserver(observerId string) {
+	arm.observers.Remove(observerId)
 }
 
-func sendEvent(eventSource func(observer RoutinesObserver)) {
-	for _, observer := range observers.Items() {
+func (arm *asyncRoutineManager) sendEvent(eventSource func(observer RoutinesObserver)) {
+	for _, observer := range arm.observers.Items() {
 		eventSource(observer)
 	}
 }
 
-func startMonitoring() {
+func (arm *asyncRoutineManager) startMonitoring() {
 	go func() {
 		for {
 			time.Sleep(routineMonitoringDelay)
 			runningThreads := 0
 			runningThreadByName := map[string]int{}
-			for id, thread := range routines.Items() {
+			for id, thread := range arm.routines.Items() {
 				switch {
 				case thread.hasExceededTimebox():
-					sendEvent(func(observer RoutinesObserver) {
+					arm.sendEvent(func(observer RoutinesObserver) {
 						thread.status = RoutineStatusExceededTimebox
 						observer.RoutineExceededTimebox(thread)
 					})
 				case thread.isFinished():
-					sendEvent(func(observer RoutinesObserver) {
+					arm.sendEvent(func(observer RoutinesObserver) {
 						observer.RoutineFinished(thread)
 					})
-					routines.Remove(id)
+					arm.routines.Remove(id)
 				}
 
 				if thread.isRunning() {
@@ -81,7 +97,7 @@ func startMonitoring() {
 				}
 			}
 
-			sendEvent(func(observer RoutinesObserver) {
+			arm.sendEvent(func(observer RoutinesObserver) {
 				observer.RunningRoutineCount(runningThreads)
 				for name, count := range runningThreadByName {
 					observer.RunningRoutineByNameCount(name, count)
@@ -92,5 +108,5 @@ func startMonitoring() {
 }
 
 func init() {
-	startMonitoring()
+	manager.startMonitoring()
 }

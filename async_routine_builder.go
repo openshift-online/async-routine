@@ -67,6 +67,6 @@ func (b *asyncRoutineBuilder) Timebox(duration time.Duration) AsyncRoutineBuilde
 }
 
 func (b *asyncRoutineBuilder) Run() {
-	routines.Set(uuid.New().String(), &b.asyncRoutine)
+	manager.routines.Set(uuid.New().String(), &b.asyncRoutine)
 	b.asyncRoutine.run()
 }
