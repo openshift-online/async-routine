@@ -1,6 +1,9 @@
 package async
 
 import (
+	"context"
+	"time"
+
 	"github.com/google/uuid"
 	cmap "github.com/orcaman/concurrent-map/v2"
 )
@@ -19,10 +22,12 @@ var _ AsyncRoutineManager = (*asyncRoutineManager)(nil)
 type Toggle func() bool
 
 type asyncRoutineManager struct {
-	managerToggle      Toggle
-	snapshottingToggle Toggle
-	routines           cmap.ConcurrentMap[string, AsyncRoutine]
-	observers          cmap.ConcurrentMap[string, RoutinesObserver]
+	ctx                  context.Context
+	managerToggle        Toggle
+	snapshottingToggle   Toggle
+	snapshottingInterval time.Duration
+	routines             cmap.ConcurrentMap[string, AsyncRoutine]
+	observers            cmap.ConcurrentMap[string, RoutinesObserver]
 }
 
 func (arm *asyncRoutineManager) IsEnabled() bool {

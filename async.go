@@ -5,8 +5,8 @@ import (
 )
 
 const (
-	// routineMonitoringDelay defines how often the routine manager checks routine status
-	routineMonitoringDelay = 30 * time.Second
+	// DefaultRoutineSnapshottingInterval defines how often the routine manager checks routine status
+	DefaultRoutineSnapshottingInterval = 30 * time.Second
 )
 
 // A RoutinesObserver is an object that observes the status of the executions of routines.

@@ -1,6 +1,11 @@
 package async
 
-import cmap "github.com/orcaman/concurrent-map/v2"
+import (
+	"context"
+	"time"
+
+	cmap "github.com/orcaman/concurrent-map/v2"
+)
 
 type AsyncRoutineManagerBuilder struct {
 	routineManager *asyncRoutineManager
@@ -8,8 +13,10 @@ type AsyncRoutineManagerBuilder struct {
 
 func NewAsyncManagerBuilder() *AsyncRoutineManagerBuilder {
 	routineManager := &asyncRoutineManager{
-		routines:  cmap.New[AsyncRoutine](),
-		observers: cmap.New[RoutinesObserver](),
+		routines:             cmap.New[AsyncRoutine](),
+		observers:            cmap.New[RoutinesObserver](),
+		snapshottingInterval: DefaultRoutineSnapshottingInterval,
+		ctx:                  context.Background(),
 	}
 
 	routineManager.managerToggle = func() bool { return true }      // by default the manager is enabled
@@ -27,6 +34,16 @@ func (b *AsyncRoutineManagerBuilder) WithManagerToggle(toggle Toggle) *AsyncRout
 
 func (b *AsyncRoutineManagerBuilder) WithSnapshottingToggle(toggle Toggle) *AsyncRoutineManagerBuilder {
 	b.routineManager.snapshottingToggle = toggle
+	return b
+}
+
+func (b *AsyncRoutineManagerBuilder) WithSnapshottingInterval(interval time.Duration) *AsyncRoutineManagerBuilder {
+	b.routineManager.snapshottingInterval = interval
+	return b
+}
+
+func (b *AsyncRoutineManagerBuilder) WithContext(ctx context.Context) *AsyncRoutineManagerBuilder {
+	b.routineManager.ctx = ctx
 	return b
 }
 

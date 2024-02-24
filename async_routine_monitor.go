@@ -14,8 +14,8 @@ func (arm *asyncRoutineManager) IsSnapshottingEnabled() bool {
 }
 
 func (arm *asyncRoutineManager) startMonitoring() {
-	go func() {
-		ticker := time.NewTicker(routineMonitoringDelay)
+	NewAsyncRoutine("async-routine-monitor", arm.ctx, func() {
+		ticker := time.NewTicker(arm.snapshottingInterval)
 		defer ticker.Stop()
 
 		for {
@@ -24,7 +24,7 @@ func (arm *asyncRoutineManager) startMonitoring() {
 				arm.snapshot()
 			}
 		}
-	}()
+	}).Run(arm)
 }
 
 func (arm *asyncRoutineManager) snapshot() {
