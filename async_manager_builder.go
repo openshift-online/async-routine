@@ -3,17 +3,28 @@ package async
 import cmap "github.com/orcaman/concurrent-map/v2"
 
 type AsyncRoutineManagerBuilder struct {
+	routineManager *asyncRoutineManager
 }
 
 func NewAsyncManagerBuilder() *AsyncRoutineManagerBuilder {
-	return &AsyncRoutineManagerBuilder{}
-}
-
-func (b *AsyncRoutineManagerBuilder) Build() AsyncRoutineManager {
-	manager := &asyncRoutineManager{
+	routineManager := &asyncRoutineManager{
 		routines:  cmap.New[AsyncRoutine](),
 		observers: cmap.New[RoutinesObserver](),
 	}
-	manager.startMonitoring()
-	return manager
+
+	routineManager.managerToggle = func() bool { return true } // by default the manager is enabled
+
+	return &AsyncRoutineManagerBuilder{
+		routineManager: routineManager,
+	}
+}
+
+func (b *AsyncRoutineManagerBuilder) WithManagerToggle(toggle Toggle) *AsyncRoutineManagerBuilder {
+	b.routineManager.managerToggle = toggle
+	return b
+}
+
+func (b *AsyncRoutineManagerBuilder) Build() AsyncRoutineManager {
+	b.routineManager.monitor().startMonitoring()
+	return b.routineManager
 }

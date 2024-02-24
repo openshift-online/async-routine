@@ -2,6 +2,10 @@ package async
 
 import "time"
 
+type AsyncRoutineMonitor interface {
+	startMonitoring()
+}
+
 func (arm *asyncRoutineManager) startMonitoring() {
 	go func() {
 		ticker := time.NewTicker(routineMonitoringDelay)

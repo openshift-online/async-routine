@@ -8,14 +8,24 @@ import (
 type AsyncRoutineManager interface {
 	AddObserver(observer RoutinesObserver) string
 	RemoveObserver(observerId string)
-
+	IsEnabled() bool
 	Run(routine AsyncRoutine, routines ...AsyncRoutine)
 	notify(eventSource func(observer RoutinesObserver))
+	monitor() AsyncRoutineMonitor
 }
 
+var _ AsyncRoutineManager = (*asyncRoutineManager)(nil)
+
+type Toggle func() bool
+
 type asyncRoutineManager struct {
-	routines  cmap.ConcurrentMap[string, AsyncRoutine]
-	observers cmap.ConcurrentMap[string, RoutinesObserver]
+	managerToggle Toggle
+	routines      cmap.ConcurrentMap[string, AsyncRoutine]
+	observers     cmap.ConcurrentMap[string, RoutinesObserver]
+}
+
+func (arm *asyncRoutineManager) IsEnabled() bool {
+	return arm.managerToggle()
 }
 
 // AddObserver adds a new RoutineObserver to the list of observers.
@@ -37,9 +47,15 @@ func (arm *asyncRoutineManager) notify(eventSource func(observer RoutinesObserve
 	}
 }
 
+func (arm *asyncRoutineManager) monitor() AsyncRoutineMonitor {
+	return arm
+}
+
 func (arm *asyncRoutineManager) Run(routine AsyncRoutine, routines ...AsyncRoutine) {
 	for _, r := range append(routines, routine) {
-		arm.routines.Set(uuid.New().String(), r)
+		if arm.IsEnabled() {
+			arm.routines.Set(uuid.New().String(), r)
+		}
 		r.run(arm)
 	}
 }

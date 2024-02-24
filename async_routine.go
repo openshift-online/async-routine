@@ -104,6 +104,12 @@ func (r *asyncRoutine) run(manager AsyncRoutineManager) {
 		// already running
 		return
 	}
+
+	if !manager.IsEnabled() {
+		r.runUnmanaged()
+		return
+	}
+
 	now := time.Now().UTC()
 	r.startedAt = &now
 	r.status = RoutineStatusRunning
@@ -140,4 +146,13 @@ func (r *asyncRoutine) run(manager AsyncRoutineManager) {
 		r.routine()
 		updateFinishedRoutine(r)
 	}()
+}
+
+func (r *asyncRoutine) runUnmanaged() {
+	if r.errGroup != nil {
+		r.errGroup.Go(r.routineWithError)
+		return
+	}
+
+	go r.routine()
 }
