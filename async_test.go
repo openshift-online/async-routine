@@ -53,22 +53,26 @@ var _ = Describe("Async Routine Monitor", func() {
 			runningRoutineByNameCount: map[string]int{},
 			originatorCtx:             ctx,
 		}
-		observerId := Manager().AddObserver(&testObserver)
-		defer Manager().RemoveObserver(observerId)
+
+		routineManager := NewAsyncManagerBuilder().Build()
+		observerId := routineManager.AddObserver(&testObserver)
+		defer routineManager.RemoveObserver(observerId)
 
 		testObserver.wg.Add(3)
-		NewAsyncRoutine("count up to 9", ctx, func() {
+		r1 := NewAsyncRoutine("count up to 9", ctx, func() {
 			for i := 0; i < 10; i++ {
 			}
-		}).Run()
-		NewAsyncRoutine("count up to 9", ctx, func() {
+		}).Build()
+		r2 := NewAsyncRoutine("count up to 9", ctx, func() {
 			for i := 0; i < 10; i++ {
 			}
-		}).Run()
-		NewAsyncRoutine("count up to 4", ctx, func() {
+		}).Build()
+		r3 := NewAsyncRoutine("count up to 4", ctx, func() {
 			for i := 0; i < 5; i++ {
 			}
-		}).Run()
+		}).Build()
+
+		routineManager.Run(r1, r2, r3)
 
 		testObserver.wg.Wait()
 		Expect(testObserver.startedRoutines).To(ConsistOf("count up to 9", "count up to 9", "count up to 4"))

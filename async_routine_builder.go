@@ -21,14 +21,19 @@ type AsyncRoutineBuilder interface {
 	// state. This value is optional.
 	Timebox(duration time.Duration) AsyncRoutineBuilder
 
+	Build() AsyncRoutine
+
 	// Run runs the routine
-	Run()
+	Run(manager AsyncRoutineManager)
 }
 
 // NewAsyncRoutine instantiates a new AsyncRoutineBuilder
 // name is the name to assign to the routine
 // routine is the function to be executed asynchronously
-func NewAsyncRoutine(name string, ctx context.Context, routine func()) AsyncRoutineBuilder {
+func NewAsyncRoutine(
+	name string,
+	ctx context.Context,
+	routine func()) AsyncRoutineBuilder {
 	return &asyncRoutineBuilder{
 		asyncRoutine: asyncRoutine{
 			name:           name,
@@ -64,6 +69,10 @@ func (b *asyncRoutineBuilder) Timebox(duration time.Duration) AsyncRoutineBuilde
 	return b
 }
 
-func (b *asyncRoutineBuilder) Run() {
-	manager.run(&b.asyncRoutine)
+func (b *asyncRoutineBuilder) Run(manager AsyncRoutineManager) {
+	manager.Run(&b.asyncRoutine)
+}
+
+func (b *asyncRoutineBuilder) Build() AsyncRoutine {
+	return &b.asyncRoutine
 }

@@ -15,6 +15,9 @@ var _ = Describe("AsyncRoutine", func() {
 		routineRan := false
 		var wg sync.WaitGroup
 		wg.Add(1)
+
+		manager := NewAsyncManagerBuilder().Build()
+
 		routine := asyncRoutine{
 			name:           "testRoutine",
 			routine:        func() { routineRan = true; wg.Done() },
@@ -24,7 +27,7 @@ var _ = Describe("AsyncRoutine", func() {
 			originatorOpId: "12345678",
 		}
 
-		routine.run()
+		routine.run(manager)
 		wg.Wait()
 		Expect(routineRan).To(BeTrue())
 		Expect(routine.StartedAt()).ToNot(BeNil())

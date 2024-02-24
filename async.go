@@ -34,19 +34,13 @@ type RoutinesObserver interface {
 type AsyncRoutineManager interface {
 	AddObserver(observer RoutinesObserver) string
 	RemoveObserver(observerId string)
-}
+	Run(routine AsyncRoutine, routines ...AsyncRoutine)
 
-var manager = &asyncRoutineManager{
-	routines:  cmap.New[*asyncRoutine](),
-	observers: cmap.New[RoutinesObserver](),
-}
-
-func Manager() AsyncRoutineManager {
-	return manager
+	notify(eventSource func(observer RoutinesObserver))
 }
 
 type asyncRoutineManager struct {
-	routines  cmap.ConcurrentMap[string, *asyncRoutine]
+	routines  cmap.ConcurrentMap[string, AsyncRoutine]
 	observers cmap.ConcurrentMap[string, RoutinesObserver]
 }
 
@@ -69,49 +63,52 @@ func (arm *asyncRoutineManager) notify(eventSource func(observer RoutinesObserve
 	}
 }
 
-func (arm *asyncRoutineManager) run(routine *asyncRoutine) {
-	arm.routines.Set(uuid.New().String(), routine)
-	routine.run()
+func (arm *asyncRoutineManager) Run(routine AsyncRoutine, routines ...AsyncRoutine) {
+	for _, r := range append(routines, routine) {
+		arm.routines.Set(uuid.New().String(), r)
+		r.run(arm)
+	}
 }
 
 func (arm *asyncRoutineManager) startMonitoring() {
 	go func() {
+		ticker := time.NewTicker(routineMonitoringDelay)
+		defer ticker.Stop()
+
 		for {
-			time.Sleep(routineMonitoringDelay)
-			runningThreads := 0
-			runningThreadByName := map[string]int{}
-			for id, thread := range arm.routines.Items() {
-				switch {
-				case thread.hasExceededTimebox():
-					arm.notify(func(observer RoutinesObserver) {
-						thread.status = RoutineStatusExceededTimebox
-						observer.RoutineExceededTimebox(thread)
-					})
-				case thread.isFinished():
-					arm.notify(func(observer RoutinesObserver) {
-						observer.RoutineFinished(thread)
-					})
-					arm.routines.Remove(id)
-				}
-
-				if thread.isRunning() {
-					runningThreads++
-					count := runningThreadByName[thread.name]
-					count++
-					runningThreadByName[thread.name] = count
-				}
-			}
-
-			arm.notify(func(observer RoutinesObserver) {
-				observer.RunningRoutineCount(runningThreads)
-				for name, count := range runningThreadByName {
-					observer.RunningRoutineByNameCount(name, count)
-				}
-			})
+			<-ticker.C
+			arm.snapshot()
 		}
 	}()
 }
 
-func init() {
-	manager.startMonitoring()
+func (arm *asyncRoutineManager) snapshot() {
+	runningThreads := 0
+	runningThreadByName := map[string]int{}
+	for monitorItem := range arm.routines.IterBuffered() {
+		id := monitorItem.Key
+		thread := monitorItem.Val
+		switch {
+		case thread.hasExceededTimebox():
+			arm.notify(func(observer RoutinesObserver) {
+				observer.RoutineExceededTimebox(thread)
+			})
+		case thread.isFinished():
+			arm.routines.Remove(id)
+		}
+
+		if thread.isRunning() {
+			runningThreads++
+			count := runningThreadByName[thread.Name()]
+			count++
+			runningThreadByName[thread.Name()] = count
+		}
+	}
+
+	arm.notify(func(observer RoutinesObserver) {
+		observer.RunningRoutineCount(runningThreads)
+		for name, count := range runningThreadByName {
+			observer.RunningRoutineByNameCount(name, count)
+		}
+	})
 }
