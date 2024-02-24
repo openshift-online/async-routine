@@ -12,6 +12,8 @@ const (
 // A RoutinesObserver is an object that observes the status of the executions of routines.
 // The interface includes methods for notifying when a routine starts, finishes, times out,
 // and for getting the count of running routines.
+//
+//go:generate mockgen -source=async.go -package=async -destination=mock_routine_observer.go
 type RoutinesObserver interface {
 	RoutineStarted(routine AsyncRoutine)
 

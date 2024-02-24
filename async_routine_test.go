@@ -5,22 +5,31 @@ import (
 	"sync"
 	"time"
 
+	"go.uber.org/mock/gomock"
+
 	. "github.com/onsi/ginkgo/v2/dsl/core"
 	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("AsyncRoutine", func() {
 	It("Run Async Routine", func() {
-
+		mockCtrl := gomock.NewController(GinkgoT())
 		routineRan := false
 		var wg sync.WaitGroup
 		wg.Add(1)
 
+		observer := NewMockRoutinesObserver(mockCtrl)
 		manager := NewAsyncManagerBuilder().Build()
+
+		observerId := manager.AddObserver(observer)
+		defer manager.RemoveObserver(observerId)
+
+		observer.EXPECT().RoutineStarted(gomock.Any()).AnyTimes()
+		observer.EXPECT().RoutineFinished(gomock.Any()).AnyTimes().Do(func(r any) { wg.Done() })
 
 		routine := asyncRoutine{
 			name:           "testRoutine",
-			routine:        func() { routineRan = true; wg.Done() },
+			routine:        func() { routineRan = true },
 			createdAt:      time.Now().UTC(),
 			status:         RoutineStatusCreated,
 			ctx:            context.Background(),
