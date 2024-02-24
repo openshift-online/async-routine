@@ -4,6 +4,13 @@ import "time"
 
 type AsyncRoutineMonitor interface {
 	startMonitoring()
+	IsSnapshottingEnabled() bool
+}
+
+var _ AsyncRoutineMonitor = (*asyncRoutineManager)(nil)
+
+func (arm *asyncRoutineManager) IsSnapshottingEnabled() bool {
+	return arm.snapshottingToggle()
 }
 
 func (arm *asyncRoutineManager) startMonitoring() {
@@ -13,7 +20,9 @@ func (arm *asyncRoutineManager) startMonitoring() {
 
 		for {
 			<-ticker.C
-			arm.snapshot()
+			if arm.IsSnapshottingEnabled() {
+				arm.snapshot()
+			}
 		}
 	}()
 }

@@ -19,9 +19,10 @@ var _ AsyncRoutineManager = (*asyncRoutineManager)(nil)
 type Toggle func() bool
 
 type asyncRoutineManager struct {
-	managerToggle Toggle
-	routines      cmap.ConcurrentMap[string, AsyncRoutine]
-	observers     cmap.ConcurrentMap[string, RoutinesObserver]
+	managerToggle      Toggle
+	snapshottingToggle Toggle
+	routines           cmap.ConcurrentMap[string, AsyncRoutine]
+	observers          cmap.ConcurrentMap[string, RoutinesObserver]
 }
 
 func (arm *asyncRoutineManager) IsEnabled() bool {
