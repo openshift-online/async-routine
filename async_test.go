@@ -110,17 +110,17 @@ var _ = Describe("Async Routine Monitor", Ordered, func() {
 
 		Expect(manager.monitor().IsSnapshottingEnabled()).To(BeTrue())
 
-		r1 := NewAsyncRoutine("count up to 4", ctx, func() {
+		r1 := NewAsyncRoutine("count up to 4 - 1", ctx, func() {
 			for i := 0; i < 5; i++ {
 				time.Sleep(time.Second)
 			}
 		}).Build()
-		r2 := NewAsyncRoutine("count up to 4", ctx, func() {
+		r2 := NewAsyncRoutine("count up to 4 - 2", ctx, func() {
 			for i := 0; i < 5; i++ {
 				time.Sleep(time.Second)
 			}
 		}).Build()
-		r3 := NewAsyncRoutine("count up to 4", ctx, func() {
+		r3 := NewAsyncRoutine("count up to 4 - 3", ctx, func() {
 			for i := 0; i < 5; i++ {
 				time.Sleep(time.Second)
 			}
