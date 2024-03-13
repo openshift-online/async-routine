@@ -20,7 +20,13 @@ var _ = Describe("Async Routine Monitor", Ordered, func() {
 	It("Track async routine execution", func() {
 		executionLog := map[string][]string{}
 
+		var mu sync.Mutex
+
 		logData := func(key string, value string) {
+			// I use a mutex here instead of a synced map since we need to sync writing in both the map and the
+			// slice contained into the map
+			mu.Lock()
+			defer mu.Unlock()
 			executionLog[key] = append(executionLog[key], value)
 		}
 
