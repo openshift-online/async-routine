@@ -2,22 +2,23 @@ package async
 
 import (
 	"context"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
 	cmap "github.com/orcaman/concurrent-map/v2"
 )
 
+var routineManager AsyncRoutineManager
+
 type AsyncRoutineManager interface {
 	AddObserver(observer RoutinesObserver) string
 	RemoveObserver(observerId string)
 	IsEnabled() bool
-	Run(routine AsyncRoutine, routines ...AsyncRoutine)
 	notify(eventSource func(observer RoutinesObserver))
-	monitor() AsyncRoutineMonitor
+	Monitor() AsyncRoutineMonitor
+	run(routine AsyncRoutine)
 }
-
-var _ AsyncRoutineManager = (*asyncRoutineManager)(nil)
 
 type Toggle func() bool
 
@@ -28,6 +29,12 @@ type asyncRoutineManager struct {
 	snapshottingInterval time.Duration
 	routines             cmap.ConcurrentMap[string, AsyncRoutine]
 	observers            cmap.ConcurrentMap[string, RoutinesObserver]
+
+	monitorLock sync.Mutex // user to sync the `Start` and `Stop` methods that are used to start the
+	// snapshotting routine
+	monitorStopChannel  chan bool // Used to notify the snapshotting routine that it should stop running
+	monitorStarted      bool
+	monitorWaitingGroup sync.WaitGroup // Used by the `Stop` method to wait for the snapshotting routine to end
 }
 
 func (arm *asyncRoutineManager) IsEnabled() bool {
@@ -53,15 +60,65 @@ func (arm *asyncRoutineManager) notify(eventSource func(observer RoutinesObserve
 	}
 }
 
-func (arm *asyncRoutineManager) monitor() AsyncRoutineMonitor {
+func (arm *asyncRoutineManager) Monitor() AsyncRoutineMonitor {
 	return arm
 }
 
-func (arm *asyncRoutineManager) Run(routine AsyncRoutine, routines ...AsyncRoutine) {
-	for _, r := range append(routines, routine) {
-		if arm.IsEnabled() {
-			arm.routines.Set(uuid.New().String(), r)
-		}
-		r.run(arm)
+func (arm *asyncRoutineManager) run(routine AsyncRoutine) {
+	if arm.IsEnabled() {
+		arm.routines.Set(uuid.New().String(), routine)
 	}
+	routine.run(arm)
+}
+
+type AsyncManagerOption func(mgr *asyncRoutineManager)
+
+func WithSnapshottingInterval(interval time.Duration) AsyncManagerOption {
+	return func(mgr *asyncRoutineManager) {
+		mgr.snapshottingInterval = interval
+	}
+}
+
+func WithSnapshottingToggle(toggle Toggle) AsyncManagerOption {
+	return func(mgr *asyncRoutineManager) {
+		mgr.snapshottingToggle = toggle
+	}
+}
+
+func WithManagerToggle(toggle Toggle) AsyncManagerOption {
+	return func(mgr *asyncRoutineManager) {
+		mgr.managerToggle = toggle
+	}
+}
+
+func WithContext(ctx context.Context) AsyncManagerOption {
+	return func(mgr *asyncRoutineManager) {
+		mgr.ctx = ctx
+	}
+}
+
+var lock sync.RWMutex
+
+func Manager(options ...AsyncManagerOption) AsyncRoutineManager {
+	if routineManager == nil {
+		lock.Lock()
+		defer lock.Unlock()
+		if routineManager == nil {
+			mgr := &asyncRoutineManager{
+				routines:             cmap.New[AsyncRoutine](),
+				observers:            cmap.New[RoutinesObserver](),
+				snapshottingInterval: DefaultRoutineSnapshottingInterval,
+				ctx:                  context.Background(),
+				managerToggle:        func() bool { return true }, // manager is enabled by default
+				snapshottingToggle:   func() bool { return true }, // snapshotting is enabled by default
+				monitorStopChannel:   make(chan bool),
+			}
+			routineManager = mgr
+		}
+	}
+
+	for _, option := range options {
+		option(routineManager.(*asyncRoutineManager))
+	}
+	return routineManager
 }

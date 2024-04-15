@@ -1,10 +1,15 @@
 package async
 
-import "time"
+import (
+	"time"
+)
 
 type AsyncRoutineMonitor interface {
 	startMonitoring()
 	IsSnapshottingEnabled() bool
+	IsStarted() bool
+	Start()
+	Stop()
 }
 
 var _ AsyncRoutineMonitor = (*asyncRoutineManager)(nil)
@@ -19,12 +24,41 @@ func (arm *asyncRoutineManager) startMonitoring() {
 		defer ticker.Stop()
 
 		for {
-			<-ticker.C
-			if arm.IsSnapshottingEnabled() {
-				arm.snapshot()
+			select {
+			case <-arm.monitorStopChannel:
+				arm.monitorStarted = false
+				arm.monitorWaitingGroup.Done()
+				return
+			case <-ticker.C:
+				if arm.IsEnabled() && arm.IsSnapshottingEnabled() {
+					arm.snapshot()
+				}
 			}
 		}
-	}).Run(arm)
+	}).Run()
+}
+
+func (arm *asyncRoutineManager) IsStarted() bool {
+	return arm.monitorStarted
+}
+
+func (arm *asyncRoutineManager) Stop() {
+	arm.monitorLock.Lock()
+	defer arm.monitorLock.Unlock()
+	if arm.IsStarted() {
+		arm.monitorStopChannel <- true
+	}
+	arm.monitorWaitingGroup.Wait()
+}
+
+func (arm *asyncRoutineManager) Start() {
+	arm.monitorLock.Lock()
+	defer arm.monitorLock.Unlock()
+	if !arm.IsStarted() {
+		arm.monitorStarted = true
+		arm.startMonitoring()
+		arm.monitorWaitingGroup.Add(1)
+	}
 }
 
 func (arm *asyncRoutineManager) snapshot() {

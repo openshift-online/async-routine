@@ -16,6 +16,7 @@ var _ = Describe("Async Routine Monitor", Ordered, func() {
 	var mockCtrl *gomock.Controller
 	BeforeEach(func() {
 		mockCtrl = gomock.NewController(GinkgoT())
+		Manager().Monitor().Stop()
 	})
 	It("Track async routine execution", func() {
 		executionLog := map[string][]string{}
@@ -41,29 +42,41 @@ var _ = Describe("Async Routine Monitor", Ordered, func() {
 		observer.EXPECT().
 			RoutineStarted(gomock.Any()).
 			AnyTimes().
-			Do(func(r AsyncRoutine) { logData("RoutineStarted", r.Name()) })
+			Do(func(r AsyncRoutine) {
+				if r.OriginatorOpId() != opid.FromContext(ctx) {
+					// we care only of our routines
+					return
+				}
+				logData("RoutineStarted", r.Name())
+			})
 		observer.EXPECT().
 			RoutineFinished(gomock.Any()).
 			AnyTimes().
-			Do(func(r AsyncRoutine) { logData("RoutineFinished", r.Name()); wg.Done() })
+			Do(func(r AsyncRoutine) {
+				if r.OriginatorOpId() != opid.FromContext(ctx) {
+					// we care only of our routines
+					return
+				}
+				logData("RoutineFinished", r.Name())
+				wg.Done()
+			})
 
-		manager := NewAsyncManagerBuilder().Build()
-
-		observerId := manager.AddObserver(observer)
-		defer manager.RemoveObserver(observerId)
+		observerId := Manager().AddObserver(observer)
+		Manager().Monitor().Start()
+		defer Manager().RemoveObserver(observerId)
 
 		NewAsyncRoutine("count up to 9", ctx, func() {
 			for i := 0; i < 10; i++ {
 			}
-		}).Run(manager)
+		}).Run()
 		NewAsyncRoutine("count up to 9", ctx, func() {
 			for i := 0; i < 10; i++ {
 			}
-		}).Run(manager)
+		}).Run()
 		NewAsyncRoutine("count up to 4", ctx, func() {
 			for i := 0; i < 5; i++ {
 			}
-		}).Run(manager)
+		}).Run()
 
 		wg.Wait()
 		Expect(executionLog["RoutineStarted"]).
@@ -94,11 +107,24 @@ var _ = Describe("Async Routine Monitor", Ordered, func() {
 		observer.EXPECT().
 			RoutineStarted(gomock.Any()).
 			AnyTimes().
-			Do(func(r any) { methodCalled("RoutineStarted") })
+			Do(func(r any) {
+				if r.(AsyncRoutine).OriginatorOpId() != opid.FromContext(ctx) {
+					// we care only of our routines
+					return
+				}
+				methodCalled("RoutineStarted")
+			})
 		observer.EXPECT().
 			RoutineFinished(gomock.Any()).
 			AnyTimes().
-			Do(func(r any) { methodCalled("RoutineFinished"); wg.Done() })
+			Do(func(r any) {
+				if r.(AsyncRoutine).OriginatorOpId() != opid.FromContext(ctx) {
+					// we care only of our routines
+					return
+				}
+				methodCalled("RoutineFinished")
+				wg.Done()
+			})
 		observer.EXPECT().
 			RunningRoutineCount(gomock.Any()).
 			AnyTimes().
@@ -108,31 +134,28 @@ var _ = Describe("Async Routine Monitor", Ordered, func() {
 			AnyTimes().
 			Do(func(name string, count int) { methodCalled("RunningRoutineByNameCount") })
 
-		manager := NewAsyncManagerBuilder().
-			WithSnapshottingInterval(time.Second).
-			Build()
+		manager := Manager(WithSnapshottingInterval(time.Second))
 		observerId := manager.AddObserver(observer)
+		manager.Monitor().Start()
 		defer manager.RemoveObserver(observerId)
 
-		Expect(manager.monitor().IsSnapshottingEnabled()).To(BeTrue())
+		Expect(manager.Monitor().IsSnapshottingEnabled()).To(BeTrue())
 
-		r1 := NewAsyncRoutine("count up to 4 - 1", ctx, func() {
+		NewAsyncRoutine("count up to 4 - 1", ctx, func() {
 			for i := 0; i < 5; i++ {
 				time.Sleep(time.Second)
 			}
-		}).Build()
-		r2 := NewAsyncRoutine("count up to 4 - 2", ctx, func() {
+		}).Run()
+		NewAsyncRoutine("count up to 4 - 2", ctx, func() {
 			for i := 0; i < 5; i++ {
 				time.Sleep(time.Second)
 			}
-		}).Build()
-		r3 := NewAsyncRoutine("count up to 4 - 3", ctx, func() {
+		}).Run()
+		NewAsyncRoutine("count up to 4 - 3", ctx, func() {
 			for i := 0; i < 5; i++ {
 				time.Sleep(time.Second)
 			}
-		}).Build()
-
-		manager.Run(r1, r2, r3)
+		}).Run()
 
 		wg.Wait()
 

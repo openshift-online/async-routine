@@ -24,7 +24,7 @@ type AsyncRoutineBuilder interface {
 	Build() AsyncRoutine
 
 	// Run runs the routine
-	Run(manager AsyncRoutineManager)
+	Run()
 }
 
 // NewAsyncRoutine instantiates a new AsyncRoutineBuilder
@@ -69,8 +69,8 @@ func (b *asyncRoutineBuilder) Timebox(duration time.Duration) AsyncRoutineBuilde
 	return b
 }
 
-func (b *asyncRoutineBuilder) Run(manager AsyncRoutineManager) {
-	manager.Run(&b.asyncRoutine)
+func (b *asyncRoutineBuilder) Run() {
+	Manager().run(&b.asyncRoutine)
 }
 
 func (b *asyncRoutineBuilder) Build() AsyncRoutine {
