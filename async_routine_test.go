@@ -18,13 +18,19 @@ var _ = Describe("AsyncRoutine", func() {
 		var wg sync.WaitGroup
 		wg.Add(1)
 
+		originatorOpId := "12345678"
 		observer := NewMockRoutinesObserver(mockCtrl)
 
 		observerId := Manager().AddObserver(observer)
 		defer Manager().RemoveObserver(observerId)
 
 		observer.EXPECT().RoutineStarted(gomock.Any()).AnyTimes()
-		observer.EXPECT().RoutineFinished(gomock.Any()).AnyTimes().Do(func(r any) { wg.Done() })
+		observer.EXPECT().RoutineFinished(gomock.Any()).AnyTimes().Do(
+			func(r AsyncRoutine) {
+				if r.OriginatorOpId() == originatorOpId {
+					wg.Done()
+				}
+			})
 
 		routine := asyncRoutine{
 			name:           "testRoutine",
@@ -32,7 +38,7 @@ var _ = Describe("AsyncRoutine", func() {
 			createdAt:      time.Now().UTC(),
 			status:         RoutineStatusCreated,
 			ctx:            context.Background(),
-			originatorOpId: "12345678",
+			originatorOpId: originatorOpId,
 		}
 		Manager().run(&routine)
 		wg.Wait()
