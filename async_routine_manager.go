@@ -15,6 +15,7 @@ type AsyncRoutineManager interface {
 	AddObserver(observer RoutinesObserver) string
 	RemoveObserver(observerId string)
 	IsEnabled() bool
+	GetSnapshot() Snapshot
 	notify(eventSource func(observer RoutinesObserver))
 	Monitor() AsyncRoutineMonitor
 	run(routine AsyncRoutine)
@@ -52,6 +53,14 @@ func (arm *asyncRoutineManager) AddObserver(observer RoutinesObserver) string {
 // RemoveObserver removes the given RoutineObserver from the list of observers
 func (arm *asyncRoutineManager) RemoveObserver(observerId string) {
 	arm.observers.Remove(observerId)
+}
+
+func (arm *asyncRoutineManager) GetSnapshot() Snapshot {
+	snapshot := newSnapshot()
+	for runningRoutines := range arm.routines.IterBuffered() {
+		snapshot.registerRoutine(runningRoutines.Val)
+	}
+	return snapshot
 }
 
 func (arm *asyncRoutineManager) notify(eventSource func(observer RoutinesObserver)) {
