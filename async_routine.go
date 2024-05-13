@@ -30,6 +30,7 @@ type AsyncRoutine interface {
 	Status() RoutineStatus
 	OpId() string
 	OriginatorOpId() string
+	GetData() map[string]string
 
 	run(manager AsyncRoutineManager)
 	hasExceededTimebox() bool
@@ -49,6 +50,7 @@ type asyncRoutine struct {
 	status           RoutineStatus
 	ctx              context.Context
 	originatorOpId   string
+	data             map[string]string
 }
 
 func (r *asyncRoutine) Name() string {
@@ -77,6 +79,14 @@ func (r *asyncRoutine) OpId() string {
 
 func (r *asyncRoutine) OriginatorOpId() string {
 	return r.originatorOpId
+}
+
+func (r *asyncRoutine) GetData() map[string]string {
+	ret := map[string]string{}
+	for k, v := range r.data {
+		ret[k] = v
+	}
+	return ret
 }
 
 func (r *asyncRoutine) isStarted() bool {

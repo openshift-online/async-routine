@@ -21,7 +21,8 @@ type AsyncRoutineBuilder interface {
 	// state. This value is optional.
 	Timebox(duration time.Duration) AsyncRoutineBuilder
 
-	Build() AsyncRoutine
+	// WithData adds some custom data to the routine.
+	WithData(key string, value string) AsyncRoutineBuilder
 
 	// Run runs the routine
 	Run()
@@ -42,6 +43,7 @@ func NewAsyncRoutine(
 			status:         RoutineStatusCreated,
 			ctx:            opid.NewContext(),
 			originatorOpId: opid.FromContext(ctx),
+			data:           map[string]string{},
 		},
 	}
 }
@@ -60,6 +62,7 @@ func NewAsyncRoutineWithErrGroup(
 			status:           RoutineStatusCreated,
 			ctx:              opid.NewContext(),
 			originatorOpId:   opid.FromContext(ctx),
+			data:             map[string]string{},
 		},
 	}
 }
@@ -69,10 +72,11 @@ func (b *asyncRoutineBuilder) Timebox(duration time.Duration) AsyncRoutineBuilde
 	return b
 }
 
-func (b *asyncRoutineBuilder) Run() {
-	Manager().run(&b.asyncRoutine)
+func (b *asyncRoutineBuilder) WithData(key string, value string) AsyncRoutineBuilder {
+	b.asyncRoutine.data[key] = value
+	return b
 }
 
-func (b *asyncRoutineBuilder) Build() AsyncRoutine {
-	return &b.asyncRoutine
+func (b *asyncRoutineBuilder) Run() {
+	Manager().run(&b.asyncRoutine)
 }
