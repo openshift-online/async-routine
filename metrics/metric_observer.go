@@ -45,26 +45,26 @@ func mapToString(m map[string]string) string {
 	return dataString[1:]
 }
 
-func (m metricObserver) RoutineStarted(routine async.AsyncRoutine) {
+func (m *metricObserver) RoutineStarted(routine async.AsyncRoutine) {
 	runningManagedRoutinesByNameCount.
 		With(prometheus.Labels{"routine_name": routine.Name(), "data": mapToString(routine.GetData())}).
 		Inc()
 }
 
-func (m metricObserver) RoutineFinished(routine async.AsyncRoutine) {
+func (m *metricObserver) RoutineFinished(routine async.AsyncRoutine) {
 	runningManagedRoutinesByNameCount.
 		With(prometheus.Labels{"routine_name": routine.Name(), "data": mapToString(routine.GetData())}).
 		Dec()
 }
 
-func (m metricObserver) RoutineExceededTimebox(routine async.AsyncRoutine) {
+func (m *metricObserver) RoutineExceededTimebox(routine async.AsyncRoutine) {
 }
 
-func (m metricObserver) RunningRoutineCount(count int) {
+func (m *metricObserver) RunningRoutineCount(count int) {
 	runningManagedRoutinesCount.Set(float64(count))
 }
 
-func (m metricObserver) RunningRoutineByNameCount(name string, count int) {
+func (m *metricObserver) RunningRoutineByNameCount(name string, count int) {
 }
 
 func NewMetricObserver() async.RoutinesObserver {
