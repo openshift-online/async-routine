@@ -36,9 +36,11 @@ type AsyncRoutine interface {
 	hasExceededTimebox() bool
 	isFinished() bool
 	isRunning() bool
+	id() string
 }
 
 type asyncRoutine struct {
+	routineId        string
 	name             string
 	routine          func()
 	routineWithError func() error
@@ -109,6 +111,10 @@ func (r *asyncRoutine) hasExceededTimebox() bool {
 	return false
 }
 
+func (r *asyncRoutine) id() string {
+	return r.routineId
+}
+
 func (r *asyncRoutine) run(manager AsyncRoutineManager) {
 	if r.isStarted() {
 		// already running
@@ -120,6 +126,7 @@ func (r *asyncRoutine) run(manager AsyncRoutineManager) {
 		return
 	}
 
+	manager.register(r)
 	now := time.Now().UTC()
 	r.startedAt = &now
 	r.status = RoutineStatusRunning
@@ -133,6 +140,7 @@ func (r *asyncRoutine) run(manager AsyncRoutineManager) {
 		} else {
 			r.status = RoutineStatusFinished
 		}
+		manager.deregister(r)
 		manager.notify(func(observer RoutinesObserver) {
 			observer.RoutineFinished(r)
 		})

@@ -18,7 +18,8 @@ type AsyncRoutineManager interface {
 	GetSnapshot() Snapshot
 	notify(eventSource func(observer RoutinesObserver))
 	Monitor() AsyncRoutineMonitor
-	run(routine AsyncRoutine)
+	register(routine AsyncRoutine)
+	deregister(routine AsyncRoutine)
 }
 
 type Toggle func() bool
@@ -73,11 +74,12 @@ func (arm *asyncRoutineManager) Monitor() AsyncRoutineMonitor {
 	return arm
 }
 
-func (arm *asyncRoutineManager) run(routine AsyncRoutine) {
-	if arm.IsEnabled() {
-		arm.routines.Set(uuid.New().String(), routine)
-	}
-	routine.run(arm)
+func (arm *asyncRoutineManager) register(routine AsyncRoutine) {
+	arm.routines.Set(routine.id(), routine)
+}
+
+func (arm *asyncRoutineManager) deregister(routine AsyncRoutine) {
+	arm.routines.Remove(routine.id())
 }
 
 type AsyncManagerOption func(mgr *asyncRoutineManager)
@@ -108,21 +110,31 @@ func WithContext(ctx context.Context) AsyncManagerOption {
 
 var lock sync.RWMutex
 
+func newAsyncRoutineManager(options ...AsyncManagerOption) AsyncRoutineManager {
+	mgr := &asyncRoutineManager{
+		routines:             cmap.New[AsyncRoutine](),
+		observers:            cmap.New[RoutinesObserver](),
+		snapshottingInterval: DefaultRoutineSnapshottingInterval,
+		ctx:                  context.Background(),
+		managerToggle:        func() bool { return true }, // manager is enabled by default
+		snapshottingToggle:   func() bool { return true }, // snapshotting is enabled by default
+		monitorStopChannel:   make(chan bool),
+	}
+
+	for _, option := range options {
+		option(mgr)
+	}
+
+	return mgr
+}
+
 func Manager(options ...AsyncManagerOption) AsyncRoutineManager {
 	if routineManager == nil {
 		lock.Lock()
 		defer lock.Unlock()
 		if routineManager == nil {
-			mgr := &asyncRoutineManager{
-				routines:             cmap.New[AsyncRoutine](),
-				observers:            cmap.New[RoutinesObserver](),
-				snapshottingInterval: DefaultRoutineSnapshottingInterval,
-				ctx:                  context.Background(),
-				managerToggle:        func() bool { return true }, // manager is enabled by default
-				snapshottingToggle:   func() bool { return true }, // snapshotting is enabled by default
-				monitorStopChannel:   make(chan bool),
-			}
-			routineManager = mgr
+			routineManager = newAsyncRoutineManager(options...)
+			return routineManager
 		}
 	}
 

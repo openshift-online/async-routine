@@ -35,7 +35,8 @@ func (arm *asyncRoutineManager) startMonitoring() {
 				}
 			}
 		}
-	}).Run()
+	}).withRoutineManager(arm).
+		Run()
 }
 
 func (arm *asyncRoutineManager) IsStarted() bool {
@@ -62,32 +63,18 @@ func (arm *asyncRoutineManager) Start() {
 }
 
 func (arm *asyncRoutineManager) snapshot() {
-	runningThreads := 0
-	runningThreadByName := map[string]int{}
-	for monitorItem := range arm.routines.IterBuffered() {
-		id := monitorItem.Key
-		thread := monitorItem.Val
-		switch {
-		case thread.hasExceededTimebox():
-			arm.notify(func(observer RoutinesObserver) {
-				observer.RoutineExceededTimebox(thread)
-			})
-		case thread.isFinished():
-			arm.routines.Remove(id)
-		}
+	snapshot := arm.GetSnapshot()
 
-		if thread.isRunning() {
-			runningThreads++
-			count := runningThreadByName[thread.Name()]
-			count++
-			runningThreadByName[thread.Name()] = count
-		}
+	for _, r := range snapshot.GetTimedOutRoutines() {
+		arm.notify(func(observer RoutinesObserver) {
+			observer.RoutineExceededTimebox(r)
+		})
 	}
 
 	arm.notify(func(observer RoutinesObserver) {
-		observer.RunningRoutineCount(runningThreads)
-		for name, count := range runningThreadByName {
-			observer.RunningRoutineByNameCount(name, count)
+		observer.RunningRoutineCount(snapshot.totalRoutineCount)
+		for _, name := range snapshot.GetRunningRoutinesNames() {
+			observer.RunningRoutineByNameCount(name, snapshot.GetRunningRoutinesCount(name))
 		}
 	})
 }

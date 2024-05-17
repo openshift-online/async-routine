@@ -19,6 +19,7 @@ var _ = Describe("AsyncRoutineManager", func() {
 	}
 
 	It("Get Async Routine Snapshot", func() {
+		manager := newAsyncRoutineManager()
 		routine1QuitChannel := make(chan bool)
 		routine2QuitChannel := make(chan bool)
 		routine3QuitChannel := make(chan bool)
@@ -29,14 +30,20 @@ var _ = Describe("AsyncRoutineManager", func() {
 			routine3QuitChannel <- true
 		}()
 
-		NewAsyncRoutine(routine1Name, context.Background(), testFunctionFactory(routine1QuitChannel)).Run()
+		NewAsyncRoutine(routine1Name, context.Background(), testFunctionFactory(routine1QuitChannel)).
+			withRoutineManager(manager).
+			Run()
 
-		NewAsyncRoutine(routine2Name, context.Background(), testFunctionFactory(routine2QuitChannel)).Run()
+		NewAsyncRoutine(routine2Name, context.Background(), testFunctionFactory(routine2QuitChannel)).
+			withRoutineManager(manager).
+			Run()
 
-		NewAsyncRoutine(routine2Name, context.Background(), testFunctionFactory(routine3QuitChannel)).Run()
+		NewAsyncRoutine(routine2Name, context.Background(), testFunctionFactory(routine3QuitChannel)).
+			withRoutineManager(manager).
+			Run()
 
-		snapshot := Manager().GetSnapshot()
-		Expect(snapshot.GetTotalRoutineCount()).To(BeNumerically(">=", 3))
+		snapshot := manager.GetSnapshot()
+		Expect(snapshot.GetTotalRoutineCount()).To(Equal(3))
 		Expect(snapshot.GetRunningRoutinesCount(routine1Name)).To(Equal(1))
 		Expect(snapshot.GetRunningRoutinesCount(routine2Name)).To(Equal(2))
 	})

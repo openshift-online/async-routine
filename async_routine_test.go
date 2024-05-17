@@ -21,8 +21,8 @@ var _ = Describe("AsyncRoutine", func() {
 		originatorOpId := "12345678"
 		observer := NewMockRoutinesObserver(mockCtrl)
 
-		observerId := Manager().AddObserver(observer)
-		defer Manager().RemoveObserver(observerId)
+		manager := newAsyncRoutineManager()
+		_ = manager.AddObserver(observer)
 
 		observer.EXPECT().RoutineStarted(gomock.Any()).AnyTimes()
 		observer.EXPECT().RoutineFinished(gomock.Any()).AnyTimes().Do(
@@ -40,7 +40,7 @@ var _ = Describe("AsyncRoutine", func() {
 			ctx:            context.Background(),
 			originatorOpId: originatorOpId,
 		}
-		Manager().run(&routine)
+		routine.run(manager)
 		wg.Wait()
 		Expect(routineRan).To(BeTrue())
 		Expect(routine.StartedAt()).ToNot(BeNil())

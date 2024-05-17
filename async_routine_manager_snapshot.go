@@ -4,6 +4,7 @@ type Snapshot struct {
 	totalRoutineCount int
 	routineByName     map[string][]AsyncRoutine
 	routineNames      []string
+	timedOutRoutines  []AsyncRoutine
 }
 
 func newSnapshot() Snapshot {
@@ -18,6 +19,9 @@ func (s *Snapshot) registerRoutine(r AsyncRoutine) {
 		s.routineNames = append(s.routineNames, r.Name())
 	}
 	s.routineByName[r.Name()] = append(s.routineByName[r.Name()], r)
+	if r.hasExceededTimebox() {
+		s.timedOutRoutines = append(s.timedOutRoutines, r)
+	}
 }
 
 func (s *Snapshot) GetTotalRoutineCount() int {
@@ -30,4 +34,10 @@ func (s *Snapshot) GetRunningRoutinesNames() []string {
 
 func (s *Snapshot) GetRunningRoutinesCount(routineName string) int {
 	return len(s.routineByName[routineName])
+}
+
+// GetTimedOutRoutines returns the list of routines that are still running and that have exceeded the configured
+// time box
+func (s *Snapshot) GetTimedOutRoutines() []AsyncRoutine {
+	return s.timedOutRoutines
 }
