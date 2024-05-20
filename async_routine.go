@@ -1,5 +1,7 @@
 package async
 
+// nolint:AsyncManager
+
 import (
 	"context"
 	"time"
