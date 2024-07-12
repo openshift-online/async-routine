@@ -2,6 +2,7 @@ package metrics
 
 import (
 	"fmt"
+	"sort"
 
 	"github.com/prometheus/client_golang/prometheus"
 
@@ -38,22 +39,41 @@ func mapToString(m map[string]string) string {
 	if len(m) == 0 {
 		return ""
 	}
+
+	// We sort all the keys to ensure the `data` field in the managed async routine metrics consistently
+	// has keys in the same order.
+	var keys = make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
 	dataString := ""
-	for k, v := range m {
-		dataString = fmt.Sprintf("%s,%s=%s", dataString, k, v)
+	for _, k := range keys {
+		dataString = fmt.Sprintf("%s,%s=%s", dataString, k, m[k])
 	}
 	return dataString[1:]
 }
 
+func (m *metricObserver) routineData(routine async.AsyncRoutine) map[string]string {
+	routineData := routine.GetData()
+
+	// we always want to have the routine opid and its originator opid
+	routineData["opid"] = routine.OpId()
+	routineData["parent_opid"] = routine.OriginatorOpId()
+
+	return routineData
+}
+
 func (m *metricObserver) RoutineStarted(routine async.AsyncRoutine) {
 	runningManagedRoutinesByNameCount.
-		With(prometheus.Labels{"routine_name": routine.Name(), "data": mapToString(routine.GetData())}).
+		With(prometheus.Labels{"routine_name": routine.Name(), "data": mapToString(m.routineData(routine))}).
 		Inc()
 }
 
 func (m *metricObserver) RoutineFinished(routine async.AsyncRoutine) {
 	runningManagedRoutinesByNameCount.
-		With(prometheus.Labels{"routine_name": routine.Name(), "data": mapToString(routine.GetData())}).
+		With(prometheus.Labels{"routine_name": routine.Name(), "data": mapToString(m.routineData(routine))}).
 		Dec()
 }
 

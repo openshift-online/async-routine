@@ -31,7 +31,6 @@ var _ = Describe("AsyncRoutine", func() {
 					wg.Done()
 				}
 			})
-
 		routine := asyncRoutine{
 			name:           "testRoutine",
 			routine:        func() { routineRan = true },
