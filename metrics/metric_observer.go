@@ -55,25 +55,15 @@ func mapToString(m map[string]string) string {
 	return dataString[1:]
 }
 
-func (m *metricObserver) routineData(routine async.AsyncRoutine) map[string]string {
-	routineData := routine.GetData()
-
-	// we always want to have the routine opid and its originator opid
-	routineData["opid"] = routine.OpId()
-	routineData["parent_opid"] = routine.OriginatorOpId()
-
-	return routineData
-}
-
 func (m *metricObserver) RoutineStarted(routine async.AsyncRoutine) {
 	runningManagedRoutinesByNameCount.
-		With(prometheus.Labels{"routine_name": routine.Name(), "data": mapToString(m.routineData(routine))}).
+		With(prometheus.Labels{"routine_name": routine.Name(), "data": mapToString(routine.GetData())}).
 		Inc()
 }
 
 func (m *metricObserver) RoutineFinished(routine async.AsyncRoutine) {
 	runningManagedRoutinesByNameCount.
-		With(prometheus.Labels{"routine_name": routine.Name(), "data": mapToString(m.routineData(routine))}).
+		With(prometheus.Labels{"routine_name": routine.Name(), "data": mapToString(routine.GetData())}).
 		Dec()
 }
 
