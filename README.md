@@ -27,7 +27,7 @@ Contributions are welcome! Please submit an issue or open a pull request with im
 
 ## License
 
-This project is licensed under the MIT License. See the `LICENSE` file for details.
+This project is licensed under the Apache 2.0 License. See the `LICENSE.txt` file for details.
 
 ---
 
