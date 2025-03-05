@@ -4,9 +4,8 @@ import (
 	"fmt"
 	"sort"
 
+	"github.com/openshift-online/async-routine"
 	"github.com/prometheus/client_golang/prometheus"
-
-	"gitlab.cee.redhat.com/service/uhc-clusters-service/pkg/async"
 )
 
 var _ async.RoutinesObserver = (*metricObserver)(nil)

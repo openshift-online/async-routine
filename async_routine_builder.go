@@ -7,8 +7,7 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	"github.com/google/uuid"
-
-	"gitlab.cee.redhat.com/service/uhc-clusters-service/pkg/opid"
+	"github.com/openshift-online/async-routine/opid"
 )
 
 var _ AsyncRoutineBuilder = (*asyncRoutineBuilder)(nil)

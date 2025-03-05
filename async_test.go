@@ -6,13 +6,14 @@ import (
 
 	"go.uber.org/mock/gomock"
 
-	. "github.com/onsi/ginkgo/v2"
+	"github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/ginkgo/v2/dsl/core"
 	. "github.com/onsi/gomega"
 
-	"gitlab.cee.redhat.com/service/uhc-clusters-service/pkg/opid"
+	"github.com/openshift-online/async-routine/opid"
 )
 
-var _ = Describe("Async Routine Monitor", Ordered, func() {
+var _ = Describe("Async Routine Monitor", ginkgo.Ordered, func() {
 	var mockCtrl *gomock.Controller
 	BeforeEach(func() {
 		mockCtrl = gomock.NewController(GinkgoT())

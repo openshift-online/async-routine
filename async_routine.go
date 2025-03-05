@@ -8,7 +8,7 @@ import (
 
 	"golang.org/x/sync/errgroup"
 
-	"gitlab.cee.redhat.com/service/uhc-clusters-service/pkg/opid"
+	"github.com/openshift-online/async-routine/opid"
 )
 
 type RoutineStatus string
