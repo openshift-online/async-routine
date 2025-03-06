@@ -9,10 +9,15 @@ The framework helps analyze and troubleshoot issues related to the **number of r
 ## Features
 
 ✅ **Goroutine Visibility** - Track and monitor all active goroutines in real-time.
+
 ✅ **Logging & Debugging** - Log goroutine execution details for troubleshooting.
+
 ✅ **Time Limits & Deadlines** - Enforce execution timeouts for goroutines.
+
 ✅ **Graceful Shutdown** - Ensure proper cleanup and resource deallocation.
+
 ✅ **Concurrency Analysis** - Detect goroutine leaks and performance bottlenecks.
+
 
 ## Use Cases
 
