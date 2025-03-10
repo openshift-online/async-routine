@@ -1,6 +1,6 @@
 module github.com/openshift-online/async-routine
 
-go 1.23.6
+go 1.22.5
 
 require (
 	github.com/google/uuid v1.6.0
