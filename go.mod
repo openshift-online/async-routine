@@ -8,7 +8,7 @@ require (
 	github.com/onsi/gomega v1.36.2
 	github.com/openshift-online/ocm-sdk-go v0.1.460
 	github.com/orcaman/concurrent-map/v2 v2.0.1
-	github.com/prometheus/client_golang v1.20.5
+	github.com/prometheus/client_golang v1.21.1
 	go.uber.org/mock v0.5.0
 	golang.org/x/sync v0.11.0
 	golang.org/x/tools v0.30.0
