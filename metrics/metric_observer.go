@@ -10,7 +10,9 @@ import (
 
 var _ async.RoutinesObserver = (*metricObserver)(nil)
 
-type metricObserver struct{}
+type metricObserver struct {
+	r prometheus.Registerer
+}
 
 var (
 	runningRoutines = prometheus.NewGauge(
@@ -28,11 +30,6 @@ var (
 		[]string{"routine_name", "data"},
 	)
 )
-
-func init() {
-	prometheus.MustRegister(runningRoutines)
-	prometheus.MustRegister(runningRoutinesByName)
-}
 
 func mapToString(m map[string]string) string {
 	if len(m) == 0 {
@@ -76,6 +73,24 @@ func (m *metricObserver) RunningRoutineCount(count int) {
 func (m *metricObserver) RunningRoutineByNameCount(name string, count int) {
 }
 
-func NewMetricObserver() async.RoutinesObserver {
-	return &metricObserver{}
+type MetricOption func(*metricObserver)
+
+func WithRegisterer(r prometheus.Registerer) MetricOption {
+	return func(mo *metricObserver) {
+		mo.r = r
+	}
+}
+
+func NewMetricObserver(opts ...MetricOption) async.RoutinesObserver {
+	mo := &metricObserver{
+		r: prometheus.DefaultRegisterer,
+	}
+
+	for _, o := range opts {
+		o(mo)
+	}
+
+	mo.r.MustRegister(runningRoutines, runningRoutinesByName)
+
+	return mo
 }
