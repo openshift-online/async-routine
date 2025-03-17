@@ -8,12 +8,52 @@ import (
 )
 
 func TestPrometheusMetrics(t *testing.T) {
-	problems, err := testutil.GatherAndLint(prometheus.DefaultGatherer)
-	if err != nil {
-		t.Fatal(err)
-	}
+	r := prometheus.NewPedanticRegistry()
 
-	for _, p := range problems {
-		t.Errorf("found linting issue: %s: %s", p.Metric, p.Text)
+	mo := NewMetricObserver(WithRegisterer(r))
+
+	for _, tc := range []struct {
+		name     string
+		updateFn func()
+		expCount int
+	}{
+		{
+			name:     "init",
+			updateFn: func() {},
+			expCount: 1,
+		},
+		{
+			name:     "set routine count to zero",
+			updateFn: func() { mo.RunningRoutineCount(0) },
+			expCount: 1,
+		},
+		{
+			name: "set routine count to 1",
+			updateFn: func() {
+				mo.RunningRoutineCount(1)
+			},
+			expCount: 1,
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			tc.updateFn()
+
+			n, err := testutil.GatherAndCount(r)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if n != tc.expCount {
+				t.Errorf("expected %d metrics, got %d", tc.expCount, n)
+			}
+
+			problems, err := testutil.GatherAndLint(r)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			for _, p := range problems {
+				t.Errorf("found linting issue: %s: %s", p.Metric, p.Text)
+			}
+		})
 	}
 }
