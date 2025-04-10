@@ -4,10 +4,15 @@ APP_NAME=asyncroutinemanager
 
 all: build
 
+ginkgo:
+	go install github.com/onsi/ginkgo/v2/ginkgo
+
+tools: ginkgo
+
 build:
 	go build -o $(APP_NAME)
 
-test:
+test: tools
 	ginkgo -r -v
 
 clean:
