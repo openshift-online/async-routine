@@ -24,6 +24,8 @@ const (
 var _ AsyncRoutine = (*asyncRoutine)(nil)
 
 // AsyncRoutine is the public interface for managed async routines
+//
+//go:generate mockgen -source=async_routine.go -package=async -destination=mock_async_routine.go
 type AsyncRoutine interface {
 	Name() string
 	CreatedAt() time.Time
