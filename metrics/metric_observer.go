@@ -6,32 +6,15 @@ import (
 
 	"github.com/openshift-online/async-routine"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
 var _ async.RoutinesObserver = (*metricObserver)(nil)
 
-type metricObserver struct{}
-
-var (
-	runningRoutines = prometheus.NewGauge(
-		prometheus.GaugeOpts{
-			Name: "async_routine_manager_routines",
-			Help: "Number of running routines.",
-		},
-	)
-
-	runningRoutinesByName = prometheus.NewGaugeVec(
-		prometheus.GaugeOpts{
-			Name: "async_routine_manager_routine_instances",
-			Help: "Number of running instances of a given routine.",
-		},
-		[]string{"routine_name", "data"},
-	)
-)
-
-func init() {
-	prometheus.MustRegister(runningRoutines)
-	prometheus.MustRegister(runningRoutinesByName)
+type metricObserver struct {
+	registerer            prometheus.Registerer
+	runningRoutines       prometheus.Gauge
+	runningRoutinesByName *prometheus.GaugeVec
 }
 
 func mapToString(m map[string]string) string {
@@ -55,13 +38,13 @@ func mapToString(m map[string]string) string {
 }
 
 func (m *metricObserver) RoutineStarted(routine async.AsyncRoutine) {
-	runningRoutinesByName.
+	m.runningRoutinesByName.
 		With(prometheus.Labels{"routine_name": routine.Name(), "data": mapToString(routine.GetData())}).
 		Inc()
 }
 
 func (m *metricObserver) RoutineFinished(routine async.AsyncRoutine) {
-	runningRoutinesByName.
+	m.runningRoutinesByName.
 		With(prometheus.Labels{"routine_name": routine.Name(), "data": mapToString(routine.GetData())}).
 		Dec()
 }
@@ -70,12 +53,46 @@ func (m *metricObserver) RoutineExceededTimebox(routine async.AsyncRoutine) {
 }
 
 func (m *metricObserver) RunningRoutineCount(count int) {
-	runningRoutines.Set(float64(count))
+	m.runningRoutines.Set(float64(count))
 }
 
 func (m *metricObserver) RunningRoutineByNameCount(name string, count int) {
 }
 
-func NewMetricObserver() async.RoutinesObserver {
-	return &metricObserver{}
+// MetricOption defines options for the metrics observer.
+type MetricOption func(*metricObserver)
+
+// WithRegisterer configures the Prometheus registry where to register metrics.
+func WithRegisterer(r prometheus.Registerer) MetricOption {
+	return func(observer *metricObserver) {
+		observer.registerer = r
+	}
+}
+
+// NewMetricObserver returns an observer which tracks metrics for the async
+// routines.
+func NewMetricObserver(opts ...MetricOption) async.RoutinesObserver {
+	observer := &metricObserver{
+		registerer: prometheus.DefaultRegisterer,
+	}
+
+	for _, opt := range opts {
+		opt(observer)
+	}
+
+	observer.runningRoutines = promauto.With(observer.registerer).NewGauge(
+		prometheus.GaugeOpts{
+			Name: "async_routine_manager_routines",
+			Help: "Number of running routines.",
+		},
+	)
+	observer.runningRoutinesByName = promauto.With(observer.registerer).NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "async_routine_manager_routine_instances",
+			Help: "Number of running instances of a given routine.",
+		},
+		[]string{"routine_name", "data"},
+	)
+
+	return observer
 }
