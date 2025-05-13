@@ -18,6 +18,7 @@ func (l leakingRoutineObserver) RoutineExceededTimebox(routine async.AsyncRoutin
 }
 
 func (l leakingRoutineObserver) RunningRoutineCount(count int) {
+	fmt.Println("running routine count:", count)
 }
 
 func (l leakingRoutineObserver) RunningRoutineByNameCount(name string, count int) {

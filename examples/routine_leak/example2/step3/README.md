@@ -26,15 +26,29 @@ func main() {
 
 The output will be something like this: 
 ```
-running routine count: 14
-running routine count: 17
-running routine count: 19
-running routine count: 21
-running routine count: 23
-running routine count: 28
-running routine count: 30
-running routine count: 31
-...
+running routine count: 2
+running routine count: 3
+running routine count: 3
+running routine count: 2
+running routine count: 4
+running routine count: 4
+running routine count: 2
+running routine count: 4
+running routine count: 4
+running routine count: 2
+running routine count: 3
+running routine count: 5
+running routine count: 3
+running routine count: 3
+running routine count: 5
+running routine count: 5
+running routine count: 3
+running routine count: 4
+running routine count: 4
+running routine count: 4
+running routine count: 5
+running routine count: 5
+running routine count: 7
 ```
 
 We can see we have a routine leak, but we still have no idea of what is the routine leak.

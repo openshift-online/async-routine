@@ -6,8 +6,8 @@ naked code of `step1` to the full integration in the last step.
 
 The application we are going to use for this demonstration is very simple:
 
-1. The `main` function starts the `doJob` go routine and then, every 4 seconds, prints the `pproof` goroutine dump
-2. `doJob` runs indefinitely and every 50 milliseconds invokes the `foo` function
-3. `foo` just invokes `bar` wich in turn starts the `parentGoRoutine` routine
-4. `parentGoRoutine` starts the `doInterestingStuff` routine passing a random number between 0 and 99
-5. `doInterestingStuff` hangs indefinitely if the received value is a multiple of 4, otherwise exits
+1. The `main` function repeatedly starts cycles where it processes multiple websites.
+   For each cycle, randomly selects 10 website URLs from a predefined list.
+   For each selected URL, asynchronously invokes the `getWebsiteResponseSize`
+2. The `getWebsiteResponseSize` asynchronously calls the `getResponseSize` and do some fun stuff with the result
+3. The `getResponseSize` contacts the site and returns the response size
