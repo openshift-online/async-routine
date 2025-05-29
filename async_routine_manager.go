@@ -16,7 +16,7 @@ type AsyncRoutineManager interface {
 	RemoveObserver(observerId string)
 	IsEnabled() bool
 	GetSnapshot() Snapshot
-	notify(eventSource func(observer RoutinesObserver))
+	notifyAll(src AsyncRoutine, evt routineEvent)
 	Monitor() AsyncRoutineMonitor
 	register(routine AsyncRoutine)
 	deregister(routine AsyncRoutine)
@@ -30,7 +30,7 @@ type asyncRoutineManager struct {
 	snapshottingToggle   Toggle
 	snapshottingInterval time.Duration
 	routines             cmap.ConcurrentMap[string, AsyncRoutine]
-	observers            cmap.ConcurrentMap[string, RoutinesObserver]
+	observers            cmap.ConcurrentMap[string, *observerProxy]
 
 	monitorLock sync.Mutex // user to sync the `Start` and `Stop` methods that are used to start the
 	// snapshotting routine
@@ -46,13 +46,27 @@ func (arm *asyncRoutineManager) IsEnabled() bool {
 // AddObserver adds a new RoutineObserver to the list of observers.
 // Assigns and returns an observer ID to the RoutineObserver
 func (arm *asyncRoutineManager) AddObserver(observer RoutinesObserver) string {
+	return arm.AddObserverWithTimeout(observer, DefaultObserverTimeout)
+}
+
+// AddObserverWithTimeout registers a new RoutinesObserver with the asyncRoutineManager,
+// associating it with a unique identifier and a specified timeout duration.
+// The function returns the unique ID assigned to the observer.
+func (arm *asyncRoutineManager) AddObserverWithTimeout(observer RoutinesObserver, timeout time.Duration) string {
 	uid := uuid.New().String()
-	arm.observers.Set(uid, observer)
+	proxy := newObserverProxy(uid, observer, arm, timeout)
+	arm.observers.Set(uid, proxy)
+	proxy.startObserving()
 	return uid
 }
 
 // RemoveObserver removes the given RoutineObserver from the list of observers
 func (arm *asyncRoutineManager) RemoveObserver(observerId string) {
+	observer, ok := arm.observers.Get(observerId)
+	if !ok {
+		return
+	}
+	observer.stopObserving()
 	arm.observers.Remove(observerId)
 }
 
@@ -64,9 +78,10 @@ func (arm *asyncRoutineManager) GetSnapshot() Snapshot {
 	return snapshot
 }
 
-func (arm *asyncRoutineManager) notify(eventSource func(observer RoutinesObserver)) {
+// notifyAll notifies all the observers of the event evt received from the routine src
+func (arm *asyncRoutineManager) notifyAll(src AsyncRoutine, evt routineEvent) {
 	for _, observer := range arm.observers.Items() {
-		eventSource(observer)
+		observer.notify(src, evt)
 	}
 }
 
@@ -113,7 +128,7 @@ var lock sync.RWMutex
 func newAsyncRoutineManager(options ...AsyncManagerOption) AsyncRoutineManager {
 	mgr := &asyncRoutineManager{
 		routines:             cmap.New[AsyncRoutine](),
-		observers:            cmap.New[RoutinesObserver](),
+		observers:            cmap.New[*observerProxy](),
 		snapshottingInterval: DefaultRoutineSnapshottingInterval,
 		ctx:                  context.Background(),
 		managerToggle:        func() bool { return true }, // manager is enabled by default
