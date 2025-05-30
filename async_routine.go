@@ -145,14 +145,10 @@ func (r *asyncRoutine) run(manager AsyncRoutineManager) {
 			r.status = RoutineStatusFinished
 		}
 		manager.deregister(r)
-		manager.notify(func(observer RoutinesObserver) {
-			observer.RoutineFinished(r)
-		})
+		manager.notifyAll(r, routineFinishedEvent())
 	}
 
-	manager.notify(func(observer RoutinesObserver) {
-		observer.RoutineStarted(r)
-	})
+	manager.notifyAll(r, routineStartedEvent())
 
 	if r.errGroup != nil {
 		r.errGroup.Go(func() error {

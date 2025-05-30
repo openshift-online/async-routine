@@ -66,15 +66,8 @@ func (arm *asyncRoutineManager) snapshot() {
 	snapshot := arm.GetSnapshot()
 
 	for _, r := range snapshot.GetTimedOutRoutines() {
-		arm.notify(func(observer RoutinesObserver) {
-			observer.RoutineExceededTimebox(r)
-		})
+		arm.notifyAll(r, routineTimeboxExceededEvent())
 	}
 
-	arm.notify(func(observer RoutinesObserver) {
-		observer.RunningRoutineCount(snapshot.totalRoutineCount)
-		for _, name := range snapshot.GetRunningRoutinesNames() {
-			observer.RunningRoutineByNameCount(name, snapshot.GetRunningRoutinesCount(name))
-		}
-	})
+	arm.notifyAll(nil, takeSnapshotEvent())
 }
