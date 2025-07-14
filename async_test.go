@@ -6,19 +6,18 @@ import (
 
 	"go.uber.org/mock/gomock"
 
-	"github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/ginkgo/v2/dsl/core"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	"github.com/openshift-online/async-routine/opid"
 )
 
-var _ = Describe("Async Routine Monitor", ginkgo.Ordered, func() {
+var _ = Describe("Async Routine Monitor", Ordered, func() {
 	var mockCtrl *gomock.Controller
 	BeforeEach(func() {
 		mockCtrl = gomock.NewController(GinkgoT())
 	})
-	It("Track async routine execution", func() {
+	DescribeTable("Track async routine execution", func(asyncObserver bool) {
 		manager := newAsyncRoutineManager()
 		defer manager.Monitor().Stop()
 
@@ -64,7 +63,13 @@ var _ = Describe("Async Routine Monitor", ginkgo.Ordered, func() {
 				wg.Done()
 			})
 
-		observerId := manager.AddObserver(observer)
+		var observerId string
+		if asyncObserver {
+			observerId = manager.AddObserver(NewAsyncRoutineObserver(observer))
+		} else {
+			observerId = manager.AddObserver(observer)
+		}
+
 		manager.Monitor().Start()
 		defer manager.RemoveObserver(observerId)
 
@@ -89,8 +94,10 @@ var _ = Describe("Async Routine Monitor", ginkgo.Ordered, func() {
 			To(ConsistOf("count up to 9", "count up to 9", "count up to 4"))
 		Expect(executionLog["RoutineFinished"]).
 			To(ConsistOf("count up to 9", "count up to 9", "count up to 4"))
-	})
-	It("Snapshotting", func() {
+	},
+		Entry("with sync observer", false),
+		Entry("with async observer", true))
+	DescribeTable("Snapshotting", func(asyncObserver bool) {
 
 		manager := newAsyncRoutineManager(WithSnapshottingInterval(time.Second))
 		Expect(manager.Monitor().IsSnapshottingEnabled()).To(BeTrue())
@@ -155,7 +162,12 @@ var _ = Describe("Async Routine Monitor", ginkgo.Ordered, func() {
 			AnyTimes().
 			Do(func(name string, count int) { methodCalled("RunningRoutineByNameCount") })
 
-		_ = manager.AddObserver(observer)
+		if asyncObserver {
+			_ = manager.AddObserver(NewAsyncRoutineObserver(observer))
+		} else {
+			_ = manager.AddObserver(observer)
+		}
+
 		manager.Monitor().Start()
 
 		NewAsyncRoutine("count up to 4 - 1", ctx, func() {
@@ -209,5 +221,7 @@ var _ = Describe("Async Routine Monitor", ginkgo.Ordered, func() {
 		manager.Monitor().Stop()
 		snapshot = manager.GetSnapshot()
 		Expect(snapshot.GetTotalRoutineCount()).To(Equal(0))
-	})
+	},
+		Entry("with sync observer", false),
+		Entry("with async observer", true))
 })
