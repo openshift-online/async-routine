@@ -43,6 +43,8 @@ type AsyncRoutine interface {
 	id() string
 }
 
+type routineData map[string]string
+
 type asyncRoutine struct {
 	routineId        string
 	name             string
@@ -56,7 +58,7 @@ type asyncRoutine struct {
 	status           RoutineStatus
 	ctx              context.Context
 	originatorOpId   string
-	data             map[string]string
+	data             routineData
 }
 
 func (r *asyncRoutine) Name() string {

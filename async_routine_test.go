@@ -2,17 +2,17 @@ package async
 
 import (
 	"context"
+	. "github.com/onsi/ginkgo/v2"
 	"sync"
 	"time"
 
 	"go.uber.org/mock/gomock"
 
-	. "github.com/onsi/ginkgo/v2/dsl/core"
 	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("AsyncRoutine", func() {
-	It("Run Async Routine", func() {
+	DescribeTable("Run Async Routine", func(asyncObserver bool) {
 		mockCtrl := gomock.NewController(GinkgoT())
 		routineRan := false
 		var wg sync.WaitGroup
@@ -22,7 +22,12 @@ var _ = Describe("AsyncRoutine", func() {
 		observer := NewMockRoutinesObserver(mockCtrl)
 
 		manager := newAsyncRoutineManager()
-		_ = manager.AddObserver(observer)
+
+		if asyncObserver {
+			_ = manager.AddObserver(NewAsyncRoutineObserver(observer))
+		} else {
+			_ = manager.AddObserver(observer)
+		}
 
 		observer.EXPECT().RoutineStarted(gomock.Any()).AnyTimes()
 		observer.EXPECT().RoutineFinished(gomock.Any()).AnyTimes().Do(
@@ -46,5 +51,8 @@ var _ = Describe("AsyncRoutine", func() {
 		Expect(routine.FinishedAt()).ToNot(BeNil())
 		Expect(routine.FinishedAt().After(*routine.StartedAt())).To(BeTrue())
 		Expect(routine.Status()).To(Equal(RoutineStatusFinished))
-	})
+	},
+		Entry("with sync observer", false),
+		Entry("with async observer", true),
+	)
 })

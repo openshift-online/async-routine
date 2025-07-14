@@ -53,6 +53,15 @@ func (arm *asyncRoutineManager) AddObserver(observer RoutinesObserver) string {
 
 // RemoveObserver removes the given RoutineObserver from the list of observers
 func (arm *asyncRoutineManager) RemoveObserver(observerId string) {
+	observer, ok := arm.observers.Get(observerId)
+	if !ok {
+		return
+	}
+
+	if obs, ok := observer.(*asyncRoutineObserver); ok {
+		obs.stopObserving()
+	}
+
 	arm.observers.Remove(observerId)
 }
 
