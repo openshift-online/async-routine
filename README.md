@@ -1,5 +1,12 @@
 # AsyncRoutineManager - Advanced Goroutine Management for Go
 
+## Quick Start
+
+```bash
+make build    # Build the project
+make test     # Run all tests
+```
+
 ## Overview
 
 **AsyncRoutineManager** is a lightweight yet powerful framework for managing asynchronous operations in Go.
