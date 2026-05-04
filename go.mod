@@ -1,6 +1,6 @@
 module github.com/openshift-online/async-routine
 
-go 1.22.5
+go 1.25.0
 
 require (
 	github.com/google/uuid v1.6.0
@@ -10,7 +10,7 @@ require (
 	github.com/orcaman/concurrent-map/v2 v2.0.1
 	github.com/prometheus/client_golang v1.21.1
 	go.uber.org/mock v0.5.0
-	golang.org/x/sync v0.11.0
+	golang.org/x/sync v0.20.0
 	golang.org/x/tools v0.30.0
 )
 
