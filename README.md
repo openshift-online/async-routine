@@ -38,3 +38,14 @@ This project is licensed under the Apache 2.0 License. See the `LICENSE.txt` fil
 
 **AsyncRoutineManager** helps you build robust, monitored, and efficient Go applications by taking full control over your goroutines!
 
+## Installation
+
+```bash
+go get github.com/openshift-online/async-routine
+```
+
+Import in your Go code:
+
+```go
+import "github.com/openshift-online/async-routine"
+```
